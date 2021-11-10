@@ -3,7 +3,7 @@ from string import Template
 import telebot
 from telebot import types
 
-bot = telebot.TeleBot('2037001514:AAGj5hIXM7nrsKd_2H6PKqBsGowFhWpzypE')
+bot = telebot.TeleBot('Secret')
 
 
 class User:
