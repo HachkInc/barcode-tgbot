@@ -2,10 +2,8 @@ from string import Template
 
 import telebot
 from telebot import types
-from telegram.ext import run_async
 
 bot = telebot.TeleBot('2037001514:AAGj5hIXM7nrsKd_2H6PKqBsGowFhWpzypE')
-
 
 class User:
     def __init__(self, id, name):
@@ -24,21 +22,16 @@ def get_markup():
     markup.add(about, info, reg)
     return markup
 
-
-@run_async
 @bot.message_handler(commands=['start'])
 def start_message(msg):
     bot.send_message(msg.chat.id, 'Добро пожаловать', reply_markup=get_markup())
 
-@run_async
 @bot.message_handler(regexp='About 👨🏻‍💻')
 def about_message(msg):
     bot.send_message(msg.chat.id, "О нас: TODO.")
 
 user_dict = {}
 
-
-@run_async
 @bot.message_handler(regexp='Register 🐣')
 def reg_message(msg):
     keyboard= types.ReplyKeyboardRemove()
@@ -51,7 +44,6 @@ def reg_message(msg):
     keyboard.add(key_no)
     bot.send_message(msg.chat.id, text=question, reply_markup=keyboard)
 
-    @run_async
     @bot.callback_query_handler(func=lambda call: call.message.chat.id == msg.chat.id)
     def callback_worker(call):
         chat_id = call.message.chat.id
@@ -119,8 +111,6 @@ def getData(user, title):
         'phoneNumber': user.phoneNumber
     })
 
-
-@run_async
 @bot.message_handler(regexp='You ℹ️')
 def info_message(msg):
     try:
@@ -130,8 +120,6 @@ def info_message(msg):
     except Exception:
         bot.send_message(msg.chat.id, 'Вы еще не зарегистрированы, напишите /reg')
 
-
-@run_async
 @bot.message_handler(content_types=['text'])
 def get_text_messages(msg):
     bot.send_message(msg.chat.id, 'хей', reply_markup=get_markup())
