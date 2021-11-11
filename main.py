@@ -1,9 +1,13 @@
 from string import Template
-
+from dotenv import load_dotenv
+import os
 import telebot
 from telebot import types
 
-bot = telebot.TeleBot('2037001514:AAGj5hIXM7nrsKd_2H6PKqBsGowFhWpzypE')
+load_dotenv()
+
+token = os.environ.get("BOT_TOKEN")
+bot = telebot.TeleBot(token)
 
 class User:
     def __init__(self, id, name):
