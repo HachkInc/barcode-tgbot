@@ -16,36 +16,34 @@ class User:
             self.d = None
 
 
-
 def get_markup():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
-    about = types.KeyboardButton('/about')
-    info = types.KeyboardButton('/info')
-    reg = types.KeyboardButton('/reg')
+    about = types.KeyboardButton('About 👨🏻‍💻')
+    info = types.KeyboardButton('You ℹ️')
+    reg = types.KeyboardButton('Register 🐣')
     markup.add(about, info, reg)
     return markup
+
 
 @run_async
 @bot.message_handler(commands=['start'])
 def start_message(msg):
     bot.send_message(msg.chat.id, 'Добро пожаловать', reply_markup=get_markup())
 
-
 @run_async
-@bot.message_handler(commands=['about'])
+@bot.message_handler(regexp='About 👨🏻‍💻')
 def about_message(msg):
     bot.send_message(msg.chat.id, "О нас: TODO.")
-
 
 user_dict = {}
 
 
 @run_async
-@bot.message_handler(commands=['reg'])
+@bot.message_handler(regexp='Register 🐣')
 def reg_message(msg):
-    question = 'Приступим! Вас зовут ' \
-               + msg.from_user.first_name + ' ' \
-               + msg.from_user.last_name + '?'
+    keyboard= types.ReplyKeyboardRemove()
+    bot.send_message(msg.chat.id, 'Супер', reply_markup=keyboard)
+    question = 'Приступим! Вас зовут ' + msg.from_user.full_name + '?'
     keyboard = types.InlineKeyboardMarkup()
     key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
     keyboard.add(key_yes)
@@ -58,14 +56,12 @@ def reg_message(msg):
     def callback_worker(call):
         chat_id = call.message.chat.id
         if call.data == "yes":
-            bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id,
-                                  reply_markup=None)
-            user_dict[chat_id] = User(chat_id, msg.from_user.first_name + ' ' + msg.from_user.last_name)
+            bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
+            user_dict[chat_id] = User(chat_id, msg.from_user.full_name)
             bot.send_message(chat_id, "Сколько вам лет?")
             bot.register_next_step_handler(msg, get_age)
         else:
-            bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id,
-                                  reply_markup=None)
+            bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
             bot.send_message(chat_id, "А как тогда?")
             bot.register_next_step_handler(msg, get_name)
 
@@ -124,9 +120,8 @@ def getData(user, title):
     })
 
 
-
 @run_async
-@bot.message_handler(commands=['info'])
+@bot.message_handler(regexp='You ℹ️')
 def info_message(msg):
     try:
         user = user_dict[msg.chat.id]
@@ -139,12 +134,7 @@ def info_message(msg):
 @run_async
 @bot.message_handler(content_types=['text'])
 def get_text_messages(msg):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    about = types.KeyboardButton('/about')
-    start = types.KeyboardButton('/start')
-    info = types.KeyboardButton('/info')
-    markup.add(start, about, info)
-    bot.send_message(msg.chat.id, 'хей', reply_markup=markup)
+    bot.send_message(msg.chat.id, 'хей', reply_markup=get_markup())
 
 
 # bot.enable_save_next_step_handlers(delay=2)
