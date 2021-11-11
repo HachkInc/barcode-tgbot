@@ -3,11 +3,15 @@ from dotenv import load_dotenv
 import os
 import telebot
 from telebot import types
+from api import Request
 
 load_dotenv()
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+API_URL = os.environ.get("API_URL")
+API_TOKEN = os.environ.get('x-api-key')
 
-token = os.environ.get("BOT_TOKEN")
-bot = telebot.TeleBot(token)
+bot = telebot.TeleBot(BOT_TOKEN)
+requestAPI = Request(API_TOKEN, API_URL)
 
 class User:
     def __init__(self, id, name):
