@@ -10,9 +10,11 @@ class Request:
         response = requests.get(self.api + '/hello')
         return response.text
 
+
+
     def getUser(self, telegramId):
         response = requests.get(self.api + '/users/' + str(telegramId), headers={'x-api-key': self.secret})
-        return response.json()
+        return response
 
     def postUser(self, telegramId, name, age, phone):
         response = requests.post(self.api + '/users',
@@ -21,12 +23,12 @@ class Request:
         return response.status_code
 
     def removeUser(self, telegramId):
-        id = self.getUser(telegramId).get('id')
+        id = self.getUser(telegramId).json().get('user').get('id')
         response = requests.delete(self.api + '/users/' + str(id), headers={'x-api-key': self.secret})
         return response.status_code
 
     def changeUser(self, telegramId, name, age, phone):
-        id = self.getUser(telegramId).get('id')
+        id = self.getUser(telegramId).json().get('user').get('id')
         response = requests.patch(self.api + '/users/' + str(id), json={'name': name, 'phone': phone, 'age': age},
                                   headers={'x-api-key': self.secret})
         return  response.status_code

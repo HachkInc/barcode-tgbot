@@ -20,33 +20,38 @@ class User:
         self.age = age
         self.phone = phone
 
-    # def __init__(self, id, name):
-    #     self.id = id
-    #     self.name = name
-    #     data = ['id', 'name', 'age', 'phone']
-    #     for d in data:
-    #         self.d = None
 
 # response = requestAPI.postUser("13", 'awd1', 21, "dqwdqwda1s")
 # print(response)
 # response = requestAPI.getUser(13)
-# print(response)
-# response = requestAPI.changeUser(13, 'adw1', 31 ,'2131321312')
-# print(requestAPI.getUser(13))
+# print(response.json().get('exist'))
+# response = requestAPI.changeUser(301047248, 'adw1', 31 ,'2131321312')
+# print(requestAPI.getUser(301047248))
 # response = requestAPI.removeUser(13)
 # print(response)
 
-def get_markup():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
-    about = types.KeyboardButton('About 👨🏻‍💻')
-    info = types.KeyboardButton('You ℹ️')
-    # reg = types.KeyboardButton('Register 🐣')
-    markup.add(about, info)
+def get_markup(chat_id):
+    response = requestAPI.getUser(chat_id).json().get('exist')
+    if response:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
+        about = types.KeyboardButton('About 👨🏻‍💻')
+        info = types.KeyboardButton('You ℹ️')
+        change = types.KeyboardButton('Change 👥')
+        markup.add(about, info, change)
+    else:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
+        about = types.KeyboardButton('About 👨🏻‍💻')
+        reg = types.KeyboardButton('Register 🐣')
+        markup.add(about, reg)
+
     return markup
+
+def get_user_from_json(user_json):
+    return User(user_json.get('telegramId'), user_json.get('name'), user_json.get('age'), user_json.get('phone'))
 
 @bot.message_handler(commands=['start'])
 def start_message(msg):
-    bot.send_message(msg.chat.id, 'Welcome', reply_markup=get_markup())
+    bot.send_message(msg.chat.id, 'Welcome', reply_markup=get_markup(msg.chat.id))
 
 @bot.message_handler(regexp='About 👨🏻‍💻')
 def about_message(msg):
@@ -54,9 +59,51 @@ def about_message(msg):
 
 user_dict = {}
 
-@bot.message_handler(commands=['change'])
+@bot.message_handler(regexp='Change 👥')
 def change_info_message(msg):
-    return None
+    keyboard = types.ReplyKeyboardRemove()
+    bot.send_message(msg.chat.id, 'Changing the info', reply_markup=keyboard)
+    keyboard = types.InlineKeyboardMarkup()
+    key_name = types.InlineKeyboardButton(text='Name', callback_data='name')
+    keyboard.add(key_name)
+    key_age = types.InlineKeyboardButton(text='Age', callback_data='age')
+    keyboard.add(key_age)
+    key_exit = types.InlineKeyboardButton(text='Cancel', callback_data='exit')
+    keyboard.add(key_exit)
+    question = 'What do you want to change?'
+    bot.send_message(msg.chat.id, question, reply_markup=keyboard)
+
+    @bot.callback_query_handler(func=lambda call: call.message.chat.id == msg.chat.id)
+    def callback_worker(call):
+        chat_id = call.message.chat.id
+        bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
+        user = get_user_from_json(requestAPI.getUser(str(chat_id)).json().get('user'))
+        if call.data == 'name':
+            bot.send_message(chat_id, "What is your new name? or /stop")
+            bot.register_next_step_handler(msg, change_name,user)
+        elif call.data == 'age':
+            bot.send_message(chat_id, "What is your age? or /stop")
+            bot.register_next_step_handler(msg, change_age, user)
+        else:
+            bot.send_message(chat_id, 'Exiting the change form', reply_markup=get_markup(chat_id))
+
+def change_name(msg, user):
+    if msg.text != '/stop':
+        requestAPI.changeUser(user.id, msg.text, user.age, user.phone)
+        bot.send_message(msg.chat.id, 'Your name has been changed', reply_markup=get_markup(user.id))
+    else:
+        bot.send_message(msg.chat.id, 'Your name has not been changed', reply_markup=get_markup(user.id))
+
+def change_age(msg, user):
+    if msg.text != '/stop':
+        try:
+            requestAPI.changeUser(user.id, user.name, int(msg.text), user.phone)
+            bot.send_message(msg.chat.id, 'Your age has been changed', reply_markup=get_markup(user.id))
+        except ValueError:
+            msg = bot.send_message(user.id, 'Numbers, please. To cancel registration press /stop')
+            bot.register_next_step_handler(msg, change_age, user)
+    else:
+        bot.send_message(msg.chat.id, 'Your age has not been changed', reply_markup=get_markup(user.id))
 
 @bot.message_handler(commands=['reg'])
 @bot.message_handler(regexp='Register 🐣')
@@ -122,16 +169,16 @@ def get_phone(msg):
             response = requestAPI.postUser(str(user.id), user.name, user.age, user.phone)
             print(response)
             if response == 500:
-                bot.send_message(user.id, 'You have already registered', reply_markup=get_markup())
+                bot.send_message(user.id, 'You have already registered', reply_markup=get_markup(msg.chat.id))
             else:
-                bot.send_message(user.id, 'Registration was successful', reply_markup=get_markup())
+                bot.send_message(user.id, 'Registration was successful', reply_markup=get_markup(msg.chat.id))
         except (ValueError, AttributeError):
             msg = bot.send_message(user.id, 'Incorrect phone number. To cancel registration press /stop')
             bot.register_next_step_handler(msg, get_phone)
         except KeyError:
             bot.send_message(user.id, 'Registration fail, to start again press /reg')
     else:
-        bot.send_message(msg.chat.id, 'Registration was stopped', reply_markup=get_markup())
+        bot.send_message(msg.chat.id, 'Registration was stopped', reply_markup=get_markup(msg.chat.id))
 
 
 def getData(user, title):
@@ -143,22 +190,19 @@ def getData(user, title):
         'phone': user.phone
     })
 
-def get_user_from_json(user_json):
-    return User(user_json.get('telegramId'), user_json.get('name'), user_json.get('age'), user_json.get('phone'))
 
 @bot.message_handler(regexp='You ℹ️')
 def info_message(msg):
     try:
-        user_json = requestAPI.getUser(str(msg.chat.id))
+        user_json = requestAPI.getUser(str(msg.chat.id)).json().get('user')
         user = get_user_from_json(user_json)
         bot.send_message(user.id, getData(user, 'Your info: '), parse_mode="Markdown")
-
-    except ValueError:
+    except Exception:
         bot.send_message(msg.chat.id, 'You are not registered yet, press /reg')
 
 @bot.message_handler(content_types=['text'])
 def get_text_messages(msg):
-    bot.send_message(msg.chat.id, 'Hey', reply_markup=get_markup())
+    bot.send_message(msg.chat.id, 'Hey, go to the menu or press any of these buttons 😊\n⬇️', reply_markup=get_markup(msg.chat.id))
 
 
 # bot.enable_save_next_step_handlers(delay=2)
