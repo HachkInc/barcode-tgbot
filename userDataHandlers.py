@@ -1,65 +1,19 @@
-from string import Template
-from dotenv import load_dotenv
-import os
-import telebot
 from telebot import types
-from api import Request
 
-load_dotenv()
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-API_URL = os.environ.get("API_URL")
-API_TOKEN = os.environ.get('x-api-key')
+from tools import User, get_user_from_json, get_markup, texts, requestAPI, bot, getData
 
-bot = telebot.TeleBot(BOT_TOKEN)
-requestAPI = Request(API_TOKEN, API_URL)
-
-class User:
-    def __init__(self, id, name, age = None, phone = None):
-        self.id = id
-        self.name = name
-        self.age = age
-        self.phone = phone
-
-
-# response = requestAPI.postUser("13", 'awd1', 21, "dqwdqwda1s")
-# print(response)
-# response = requestAPI.getUser(13)
-# print(response.json().get('exist'))
-# response = requestAPI.changeUser(301047248, 'adw1', 31 ,'2131321312')
-# print(requestAPI.getUser(301047248))
-# response = requestAPI.removeUser(13)
-# print(response)
-
-def get_markup(chat_id):
-    response = requestAPI.getUser(chat_id).json().get('exist')
-    if response:
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
-        about = types.KeyboardButton('About 👨🏻‍💻')
-        info = types.KeyboardButton('You ℹ️')
-        change = types.KeyboardButton('Change 👥')
-        markup.add(about, info, change)
-    else:
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
-        about = types.KeyboardButton('About 👨🏻‍💻')
-        reg = types.KeyboardButton('Register 🐣')
-        markup.add(about, reg)
-
-    return markup
-
-def get_user_from_json(user_json):
-    return User(user_json.get('telegramId'), user_json.get('name'), user_json.get('age'), user_json.get('phone'))
 
 @bot.message_handler(commands=['start'])
 def start_message(msg):
     bot.send_message(msg.chat.id, 'Welcome', reply_markup=get_markup(msg.chat.id))
 
-@bot.message_handler(regexp='About 👨🏻‍💻')
+@bot.message_handler(regexp=texts.get('about'))
 def about_message(msg):
     bot.send_message(msg.chat.id, "TODO")
 
 user_dict = {}
 
-@bot.message_handler(regexp='Change 👥')
+@bot.message_handler(regexp=texts.get('change'))
 def change_info_message(msg):
     keyboard = types.ReplyKeyboardRemove()
     bot.send_message(msg.chat.id, 'Changing the info', reply_markup=keyboard)
@@ -106,7 +60,7 @@ def change_age(msg, user):
         bot.send_message(msg.chat.id, 'Your age has not been changed', reply_markup=get_markup(user.id))
 
 @bot.message_handler(commands=['reg'])
-@bot.message_handler(regexp='Register 🐣')
+@bot.message_handler(regexp=texts.get('reg'))
 def reg_message(msg):
     keyboard= types.ReplyKeyboardRemove()
     bot.send_message(msg.chat.id, 'Great', reply_markup=keyboard)
@@ -181,17 +135,8 @@ def get_phone(msg):
         bot.send_message(msg.chat.id, 'Registration was stopped', reply_markup=get_markup(msg.chat.id))
 
 
-def getData(user, title):
-    t = Template('*$title* \nName: *$name* \nAge: *$age* \nPhone Number: *$phone*')
-    return t.substitute({
-        'title': title,
-        'name': user.name,
-        'age': user.age,
-        'phone': user.phone
-    })
 
-
-@bot.message_handler(regexp='You ℹ️')
+@bot.message_handler(regexp=texts.get('me'))
 def info_message(msg):
     try:
         user_json = requestAPI.getUser(str(msg.chat.id)).json().get('user')
@@ -203,6 +148,7 @@ def info_message(msg):
 @bot.message_handler(content_types=['text'])
 def get_text_messages(msg):
     bot.send_message(msg.chat.id, 'Hey, go to the menu or press any of these buttons 😊\n⬇️', reply_markup=get_markup(msg.chat.id))
+
 
 
 # bot.enable_save_next_step_handlers(delay=2)
