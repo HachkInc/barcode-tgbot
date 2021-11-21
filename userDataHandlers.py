@@ -1,17 +1,22 @@
+import datetime
+
 from telebot import types
 
-from tools import User, get_user_from_json, get_markup, texts, requestAPI, bot, getData
+from tools import User, get_user_from_json, get_markup, texts, requestAPI, bot, getData, getEvent
 
 
 @bot.message_handler(commands=['start'])
 def start_message(msg):
     bot.send_message(msg.chat.id, 'Welcome', reply_markup=get_markup(msg.chat.id))
 
+
 @bot.message_handler(regexp=texts.get('about'))
 def about_message(msg):
     bot.send_message(msg.chat.id, "TODO")
 
+
 user_dict = {}
+
 
 @bot.message_handler(regexp=texts.get('change'))
 def change_info_message(msg):
@@ -34,12 +39,13 @@ def change_info_message(msg):
         user = get_user_from_json(requestAPI.getUser(str(chat_id)).json().get('user'))
         if call.data == 'name':
             bot.send_message(chat_id, "What is your new name? or /stop")
-            bot.register_next_step_handler(msg, change_name,user)
+            bot.register_next_step_handler(msg, change_name, user)
         elif call.data == 'age':
             bot.send_message(chat_id, "What is your age? or /stop")
             bot.register_next_step_handler(msg, change_age, user)
         else:
             bot.send_message(chat_id, 'Exiting the change form', reply_markup=get_markup(chat_id))
+
 
 def change_name(msg, user):
     if msg.text != '/stop':
@@ -47,6 +53,7 @@ def change_name(msg, user):
         bot.send_message(msg.chat.id, 'Your name has been changed', reply_markup=get_markup(user.id))
     else:
         bot.send_message(msg.chat.id, 'Your name has not been changed', reply_markup=get_markup(user.id))
+
 
 def change_age(msg, user):
     if msg.text != '/stop':
@@ -59,10 +66,11 @@ def change_age(msg, user):
     else:
         bot.send_message(msg.chat.id, 'Your age has not been changed', reply_markup=get_markup(user.id))
 
+
 @bot.message_handler(commands=['reg'])
 @bot.message_handler(regexp=texts.get('reg'))
 def reg_message(msg):
-    keyboard= types.ReplyKeyboardRemove()
+    keyboard = types.ReplyKeyboardRemove()
     bot.send_message(msg.chat.id, 'Great', reply_markup=keyboard)
     question = 'Is your name ' + msg.from_user.full_name + '?'
     keyboard = types.InlineKeyboardMarkup()
@@ -135,7 +143,6 @@ def get_phone(msg):
         bot.send_message(msg.chat.id, 'Registration was stopped', reply_markup=get_markup(msg.chat.id))
 
 
-
 @bot.message_handler(regexp=texts.get('me'))
 def info_message(msg):
     try:
@@ -145,10 +152,64 @@ def info_message(msg):
     except Exception:
         bot.send_message(msg.chat.id, 'You are not registered yet, press /reg')
 
+
+def get_next_events(keyboard, i):
+    response = requestAPI.getEvents().json()
+    key_first = types.InlineKeyboardButton(text=response.get('results')[i].get('name'),
+                                           callback_data='first')
+    keyboard.add(key_first)
+    if response.get('count') != i+1:
+        key_second = types.InlineKeyboardButton(text=response.get('results')[i + 1].get('name'),
+                                                callback_data='second')
+        keyboard.add(key_second)
+    key_next = types.InlineKeyboardButton(text='Next', callback_data='next')
+    keyboard.add(key_next)
+    key_prev = types.InlineKeyboardButton(text='Prev', callback_data='prev')
+    keyboard.add(key_prev)
+    return keyboard
+
+
+@bot.message_handler(regexp=texts.get('events'))
+def get_events(msg):
+    response = requestAPI.getEvents()
+    keyboard = types.ReplyKeyboardRemove()
+    bot.send_message(msg.chat.id, 'Great', reply_markup=keyboard)
+    question = 'What event do you want to go?';
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    page = 0
+    get_next_events(keyboard, page)
+    bot.send_message(msg.chat.id, text=question, reply_markup=keyboard)
+
+    @bot.callback_query_handler(func=lambda call: call.message.chat.id == msg.chat.id)
+    def callback_worker(call):
+        nonlocal page
+        chat_id = call.message.chat.id
+        if call.data == 'first':
+            bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
+            bot.send_message(msg.chat.id, getEvent(response.json().get('results')[page]), parse_mode="Markdown")
+            page = 0
+        elif call.data == 'second':
+            bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
+            bot.send_message(msg.chat.id, getEvent(response.json().get('results')[page + 1]), parse_mode="Markdown")
+            page = 0
+        elif call.data == 'next':
+            if page + 2 < response.json().get('count'):
+                page += 2
+                keyboard = types.InlineKeyboardMarkup(row_width=2)
+                bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id,
+                                      reply_markup=get_next_events(keyboard, page))
+        else:
+            if page - 2 >= 0:
+                keyboard = types.InlineKeyboardMarkup(row_width=2)
+                page -= 2
+                bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id,
+                                      reply_markup=get_next_events(keyboard, page))
+
+
 @bot.message_handler(content_types=['text'])
 def get_text_messages(msg):
-    bot.send_message(msg.chat.id, 'Hey, go to the menu or press any of these buttons 😊\n⬇️', reply_markup=get_markup(msg.chat.id))
-
+    bot.send_message(msg.chat.id, 'Hey, go to the menu or press any of these buttons 😊\n⬇️',
+                     reply_markup=get_markup(msg.chat.id))
 
 
 # bot.enable_save_next_step_handlers(delay=2)

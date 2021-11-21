@@ -1,3 +1,4 @@
+import datetime
 import os
 from string import Template
 
@@ -26,7 +27,8 @@ texts = {
     "about":'About us 👨🏻‍💻',
     "me":'Me ℹ️',
     "change":'Change 👥',
-    "reg":'Register 🐣'
+    "reg":'Register 🐣',
+    "events":'Events 🥳'
 }
 
 def get_markup(chat_id):
@@ -36,12 +38,14 @@ def get_markup(chat_id):
         about = types.KeyboardButton(texts.get('about'))
         info = types.KeyboardButton(texts.get('me'))
         change = types.KeyboardButton(texts.get('change'))
-        markup.add(about, info, change)
+        events = types.KeyboardButton(texts.get('events'))
+        markup.add(about, info, change, events)
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
         about = types.KeyboardButton(texts.get('about'))
         reg = types.KeyboardButton(texts.get('reg'))
-        markup.add(about, reg)
+        events = types.KeyboardButton(texts.get('events'))
+        markup.add(about, reg, events)
 
     return markup
 
@@ -55,5 +59,15 @@ def getData(user, title):
         'name': user.name,
         'age': user.age,
         'phone': user.phone
+    })
+
+def getEvent(event_json):
+    t = Template('Name: *$name* \nDate: *$date* \nTime: *$time* \nTickets: *$tickets*')
+    date = datetime.datetime.strptime(event_json.get('date'), "%Y-%m-%dT%H:%M:%S.%fZ")
+    return t.substitute({
+        'name': event_json.get('name'),
+        'date': date.strftime('%A %d %B %Y'),
+        'time': date.strftime('%H:%M'),
+        'tickets': event_json.get('ticketsAmount')
     })
 

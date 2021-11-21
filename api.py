@@ -32,3 +32,8 @@ class Request:
         response = requests.patch(self.api + '/users/' + str(id), json={'name': name, 'phone': phone, 'age': age},
                                   headers={'x-api-key': self.secret})
         return  response.status_code
+
+
+    def getEvents(self):
+        response = requests.get(self.api + '/events/', headers={'x-api-key': self.secret})
+        return response
