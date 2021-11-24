@@ -10,8 +10,6 @@ class Request:
         response = requests.get(self.api + '/hello')
         return response.text
 
-
-
     def getUser(self, telegramId):
         response = requests.get(self.api + '/users/' + str(telegramId), headers={'x-api-key': self.secret})
         return response
@@ -31,9 +29,24 @@ class Request:
         id = self.getUser(telegramId).json().get('user').get('id')
         response = requests.patch(self.api + '/users/' + str(id), json={'name': name, 'phone': phone, 'age': age},
                                   headers={'x-api-key': self.secret})
-        return  response.status_code
-
+        return response.status_code
 
     def getEvents(self):
         response = requests.get(self.api + '/events/', headers={'x-api-key': self.secret})
         return response
+
+    def getEventById(self, eventId):
+        response = requests.get(self.api + '/events/' + str(eventId), headers={'x-api-key': self.secret})
+        return response
+
+    def postUserOnEvent(self, telegramId, eventId):
+        id = self.getUser(telegramId).json().get('user').get('id')
+        response = requests.post(self.api + '/users-on-events?userId=' + str(id) + '&eventId=' + str(eventId),
+            headers={'x-api-key': self.secret})
+        return response.status_code
+
+    def deleteUserOnEvent(self, telegramId, eventId):
+        id = self.getUser(telegramId).json().get('user').get('id')
+        response = requests.delete(self.api + '/users-on-events?userId=' + str(id) + '&eventId=' + str(eventId),
+            headers={'x-api-key': self.secret})
+        return response.status_code

@@ -17,6 +17,7 @@ def about_message(msg):
 
 user_dict = {}
 
+queryHandlerId=0
 
 @bot.message_handler(regexp=texts.get('change'))
 def change_info_message(msg):
@@ -31,7 +32,6 @@ def change_info_message(msg):
     keyboard.add(key_exit)
     question = 'What do you want to change?'
     bot.send_message(msg.chat.id, question, reply_markup=keyboard)
-
     @bot.callback_query_handler(func=lambda call: call.message.chat.id == msg.chat.id)
     def callback_worker(call):
         chat_id = call.message.chat.id
@@ -43,7 +43,7 @@ def change_info_message(msg):
         elif call.data == 'age':
             bot.send_message(chat_id, "What is your age? or /stop")
             bot.register_next_step_handler(msg, change_age, user)
-        else:
+        elif call.data == 'exit':
             bot.send_message(chat_id, 'Exiting the change form', reply_markup=get_markup(chat_id))
 
 
@@ -74,21 +74,21 @@ def reg_message(msg):
     bot.send_message(msg.chat.id, 'Great', reply_markup=keyboard)
     question = 'Is your name ' + msg.from_user.full_name + '?'
     keyboard = types.InlineKeyboardMarkup()
-    key_yes = types.InlineKeyboardButton(text='Yes', callback_data='yes')
+    key_yes = types.InlineKeyboardButton(text='Yes', callback_data='yes1')
     keyboard.add(key_yes)
-    key_no = types.InlineKeyboardButton(text='No', callback_data='no')
+    key_no = types.InlineKeyboardButton(text='No', callback_data='no1')
     keyboard.add(key_no)
     bot.send_message(msg.chat.id, text=question, reply_markup=keyboard)
 
     @bot.callback_query_handler(func=lambda call: call.message.chat.id == msg.chat.id)
     def callback_worker(call):
         chat_id = call.message.chat.id
-        if call.data == "yes":
+        if call.data == "yes1":
             bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
             user_dict[chat_id] = User(chat_id, msg.from_user.full_name)
             bot.send_message(chat_id, "How old are you?")
             bot.register_next_step_handler(msg, get_age)
-        else:
+        elif call.data == 'no1':
             bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
             bot.send_message(chat_id, "How then?")
             bot.register_next_step_handler(msg, get_name)
@@ -174,37 +174,61 @@ def get_events(msg):
     response = requestAPI.getEvents()
     keyboard = types.ReplyKeyboardRemove()
     bot.send_message(msg.chat.id, 'Great', reply_markup=keyboard)
-    question = 'What event do you want to go?';
+    question = 'What event do you want to go?'
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     page = 0
     get_next_events(keyboard, page)
     bot.send_message(msg.chat.id, text=question, reply_markup=keyboard)
-
     @bot.callback_query_handler(func=lambda call: call.message.chat.id == msg.chat.id)
     def callback_worker(call):
         nonlocal page
         chat_id = call.message.chat.id
         if call.data == 'first':
             bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
-            bot.send_message(msg.chat.id, getEvent(response.json().get('results')[page]), parse_mode="Markdown")
+            temp = page
             page = 0
+            register_to_event(msg, response.json().get('results')[temp].get('id'))
+            # bot.send_message(msg.chat.id, getEvent(response.json().get('results')[page]), parse_mode="Markdown")
         elif call.data == 'second':
             bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
-            bot.send_message(msg.chat.id, getEvent(response.json().get('results')[page + 1]), parse_mode="Markdown")
+            temp = page
             page = 0
+            register_to_event(msg, response.json().get('results')[temp + 1].get('id'))
+            # bot.send_message(msg.chat.id, getEvent(response.json().get('results')[page + 1]), parse_mode="Markdown")
         elif call.data == 'next':
             if page + 2 < response.json().get('count'):
                 page += 2
                 keyboard = types.InlineKeyboardMarkup(row_width=2)
                 bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id,
                                       reply_markup=get_next_events(keyboard, page))
-        else:
+        elif call.data == 'prev':
             if page - 2 >= 0:
                 keyboard = types.InlineKeyboardMarkup(row_width=2)
                 page -= 2
                 bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id,
                                       reply_markup=get_next_events(keyboard, page))
 
+
+def register_to_event(msg, eventId):
+    keyboard = types.InlineKeyboardMarkup()
+    key_yes = types.InlineKeyboardButton(text='Yes', callback_data='yes')
+    keyboard.add(key_yes)
+    key_no = types.InlineKeyboardButton(text='No', callback_data='no')
+    keyboard.add(key_no)
+    response = requestAPI.getEventById(eventId)
+    bot.send_message(msg.chat.id, getEvent(response.json()), parse_mode="Markdown")
+    question = 'Do you want to register to this event?'
+    bot.send_message(msg.chat.id, text=question , reply_markup=keyboard)
+    @bot.callback_query_handler(func=lambda call: call.message.chat.id == msg.chat.id)
+    def callback_worker(call):
+        chat_id = call.message.chat.id
+        bot.edit_message_text(text=question, chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              reply_markup=None)
+        if call.data == 'yes':
+            bot.send_message(msg.chat.id, "ok")
+        elif call.data == 'no':
+            # bot.edit_message_text(text=question, chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
+            bot.send_message(msg.chat.id, "not ok")
 
 @bot.message_handler(content_types=['text'])
 def get_text_messages(msg):
