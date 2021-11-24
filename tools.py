@@ -28,7 +28,8 @@ texts = {
     "me":'Me ℹ️',
     "change":'Change 👥',
     "reg":'Register 🐣',
-    "events":'Events 🥳'
+    "events":'Events 🥳',
+    "myevents":'My events 😈'
 }
 
 def get_markup(chat_id):
@@ -39,7 +40,8 @@ def get_markup(chat_id):
         info = types.KeyboardButton(texts.get('me'))
         change = types.KeyboardButton(texts.get('change'))
         events = types.KeyboardButton(texts.get('events'))
-        markup.add(about, info, change, events)
+        myevents = types.KeyboardButton(texts.get('myevents'))
+        markup.add(about, info, change, events, myevents)
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
         about = types.KeyboardButton(texts.get('about'))

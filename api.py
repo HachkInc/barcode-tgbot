@@ -42,11 +42,16 @@ class Request:
     def postUserOnEvent(self, telegramId, eventId):
         id = self.getUser(telegramId).json().get('user').get('id')
         response = requests.post(self.api + '/users-on-events?userId=' + str(id) + '&eventId=' + str(eventId),
-            headers={'x-api-key': self.secret})
+                                 headers={'x-api-key': self.secret})
         return response.status_code
 
     def deleteUserOnEvent(self, telegramId, eventId):
         id = self.getUser(telegramId).json().get('user').get('id')
         response = requests.delete(self.api + '/users-on-events?userId=' + str(id) + '&eventId=' + str(eventId),
-            headers={'x-api-key': self.secret})
+                                   headers={'x-api-key': self.secret})
         return response.status_code
+
+    def getUsersEvents(self, telegramId):
+        id = self.getUser(telegramId).json().get('user').get('id')
+        response = requests.get(self.api + '/users/' + str(id) + '/events', headers={'x-api-key': self.secret})
+        return response
