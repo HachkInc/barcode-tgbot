@@ -55,3 +55,8 @@ class Request:
         id = self.getUser(telegramId).json().get('user').get('id')
         response = requests.get(self.api + '/users/' + str(id) + '/events', headers={'x-api-key': self.secret})
         return response
+
+    def getPlaceOfEvent(self, placeId):
+        response = requests.get(self.api + '/place/' + str(placeId), headers={'x-api-key': self.secret})
+        return response
+

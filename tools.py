@@ -33,15 +33,17 @@ texts = {
 }
 
 def get_markup(chat_id):
-    response = requestAPI.getUser(chat_id).json().get('exist')
-    if response:
+    response = requestAPI.getUser(chat_id).json()
+    if response.get('exist'):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
         about = types.KeyboardButton(texts.get('about'))
         info = types.KeyboardButton(texts.get('me'))
         change = types.KeyboardButton(texts.get('change'))
         events = types.KeyboardButton(texts.get('events'))
-        myevents = types.KeyboardButton(texts.get('myevents'))
-        markup.add(about, info, change, events, myevents)
+        markup.add(about, info, change, events)
+        if len(requestAPI.getUsersEvents(chat_id).json()) != 0:
+            myevents = types.KeyboardButton(texts.get('myevents'))
+            markup.add(myevents)
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=False)
         about = types.KeyboardButton(texts.get('about'))
@@ -71,5 +73,15 @@ def getEvent(event_json):
         'date': date.strftime('%A %d %B %Y'),
         'time': date.strftime('%H:%M'),
         'tickets': event_json.get('ticketsAmount')
+    })
+
+def getEventInfo(event_json):
+    t = Template('Name: *$name* \nDate: *$date* \nTime: *$time* \nPlace: *$place*')
+    date = datetime.datetime.strptime(event_json.get('date'), "%Y-%m-%dT%H:%M:%S.%fZ")
+    return t.substitute({
+        'name': event_json.get('name'),
+        'date': date.strftime('%A %d %B %Y'),
+        'time': date.strftime('%H:%M'),
+        'place': requestAPI.getPlaceOfEvent(event_json.get('placeId')).json().get('name')
     })
 

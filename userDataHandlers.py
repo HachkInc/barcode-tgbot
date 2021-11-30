@@ -1,8 +1,6 @@
-import datetime
-
 from telebot import types
 
-from tools import User, get_user_from_json, get_markup, texts, requestAPI, bot, getData, getEvent
+from tools import User, get_user_from_json, get_markup, texts, requestAPI, bot, getData, getEvent, getEventInfo
 
 
 @bot.message_handler(commands=['start'])
@@ -67,18 +65,6 @@ def reg_message(msg):
     keyboard.add(key_no)
     bot.send_message(msg.chat.id, text=question, reply_markup=keyboard)
 
-    # @bot.callback_query_handler(func=lambda call: call.message.chat.id == msg.chat.id)
-    # def callback_worker(call):
-    #     chat_id = call.message.chat.id
-    #     if call.data == "yes1":
-    #         bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
-    #         user_dict[chat_id] = User(chat_id, msg.from_user.full_name)
-    #         bot.send_message(chat_id, "How old are you?")
-    #         bot.register_next_step_handler(msg, get_age)
-    #     elif call.data == 'no1':
-    #         bot.edit_message_text(text=question, chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
-    #         bot.send_message(chat_id, "How then?")
-    #         bot.register_next_step_handler(msg, get_name)
 
 
 def get_name(msg):
@@ -156,16 +142,38 @@ def get_next_events(keyboard, i):
         keyboard.add(key_prev)
     return keyboard
 
-# @bot.message_handler(regexp=texts.get('myevents'))
-# def get_events(msg):
-#     display_events(msg, requestAPI.getUsersEvents(msg.from_user.id).json(), 0)
-#
-# def display_events(msg,event_json, number):
-#     keyboard = types.InlineKeyboardMarkup(row_width=1)
-#     key_next = types.InlineKeyboardButton(text='Next', callback_data='next1')
-#     keyboard.add(key_next)
-#     bot.send_message(msg.from_user.id, getEvent(event_json[number]), reply_markup=keyboard, parse_mode="Markdown")
-#
+print(requestAPI.getUsersEvents(404167622).json())
+
+print(requestAPI.getPlaceOfEvent(5).json())
+
+eventIdOfUser=0
+@bot.message_handler(regexp=texts.get('myevents'))
+def get_my_events_handler(msg):
+    get_my_events(msg.chat.id)
+
+def get_my_events(chat_id, message_id = 0):
+    global eventIdOfUser
+    response = requestAPI.getUsersEvents(chat_id)
+    if len(response.json()) != 0:
+        keyboard = types.InlineKeyboardMarkup()
+        key_delete = types.InlineKeyboardButton(text='Miss 😢', callback_data='miss event')
+        keyboard.add(key_delete)
+        key_next = types.InlineKeyboardButton(text='Next', callback_data='nextmy')
+        key_prev = types.InlineKeyboardButton(text='Prev', callback_data='prevmy')
+        if eventIdOfUser == 0:
+            if len(response.json()) != 1:
+                keyboard.add(key_next)
+            bot.send_message(chat_id, getEventInfo(response.json()[eventIdOfUser]), reply_markup=keyboard,
+                                  parse_mode="Markdown")
+        elif eventIdOfUser == len(response.json()) - 1:
+            keyboard.add(key_prev)
+            bot.edit_message_text(text = getEventInfo(response.json()[eventIdOfUser]), chat_id=chat_id, message_id=message_id , reply_markup=keyboard, parse_mode="Markdown")
+        else:
+            keyboard.add(key_next)
+            keyboard.add(key_prev)
+            bot.edit_message_text(text = getEventInfo(response.json()[eventIdOfUser]), chat_id=chat_id, message_id=message_id , reply_markup=keyboard, parse_mode="Markdown")
+
+
 
 
 @bot.message_handler(regexp=texts.get('events'))
@@ -188,6 +196,7 @@ def register_to_event(msg, eventId):
     bot.send_message(msg.chat.id, getEvent(response.json()), parse_mode="Markdown")
     question = 'Do you want to register to this event?'
     bot.send_message(msg.chat.id, text=question , reply_markup=keyboard)
+
 
 page = 0
 eventId = 0
@@ -223,8 +232,22 @@ def callback_worker(call):
                               reply_markup=None)
 
         bot.send_message(chat_id, 'Exiting the change form', reply_markup=get_markup(chat_id))
-    # elif call.data = 'next1':
-    #     bot.edit_message_text(text= ,chat_id=chat_id, message_id=call.message.message_id, reply_markup=None)
+
+    global eventIdOfUser
+    if call.data == 'nextmy':
+        eventIdOfUser += 1
+        get_my_events(chat_id, call.message.message_id)
+    elif call.data == 'prevmy':
+        eventIdOfUser -= 1
+        get_my_events(chat_id, call.message.message_id)
+    elif call.data == 'miss event':
+        response = requestAPI.getUsersEvents(chat_id).json()[eventIdOfUser]
+        requestAPI.deleteUserOnEvent(chat_id, response.get('id'))
+        bot.edit_message_text(text = getEventInfo(response), chat_id=chat_id, message_id=call.message.message_id , reply_markup=None, parse_mode="Markdown")
+        bot.send_message(chat_id, 'You will miss this event 😭', reply_markup=get_markup(chat_id))
+        eventIdOfUser=0
+
+
 
     response = requestAPI.getEvents()
     global page
