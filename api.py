@@ -45,6 +45,11 @@ class Request:
         response = requests.get(self.api + '/events/' + str(eventId), headers={'x-api-key': self.secret})
         return response
 
+    def getEventsUsers(self, eventId):
+        id = self.getEventById(eventId).json().get('id')
+        response = requests.get(self.api + '/events/' + str(id) + '/users', headers={'x-api-key': self.secret})
+        return response
+
     def postUserOnEvent(self, telegramId, eventId):
         id = self.getUser(telegramId).json().get('user').get('id')
         response = requests.post(self.api + '/users-on-events?userId=' + str(id) + '&eventId=' + str(eventId),

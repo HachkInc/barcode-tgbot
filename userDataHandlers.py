@@ -4,13 +4,11 @@ from PIL import Image
 from telebot import types
 
 from tools import User, get_user_from_json, get_markup, texts, requestAPI, bot, getData, getEvent, getEventInfo
-
-from pyzbar.pyzbar import decode
 import barcode
 from barcode.writer import ImageWriter
 import os
 
-path = '/Users/arseniyms/PycharmProjects/botTelegram/'
+path = os.environ.get('path')
 
 @bot.message_handler(commands=['start'])
 def start_message(msg):
@@ -143,7 +141,7 @@ def get_next_events(keyboard, i):
         key_second = types.InlineKeyboardButton(text=response.get('results')[i + 1].get('name'),
                                                 callback_data='second')
         keyboard.add(key_second)
-    if not i == response.get('count') - 1:
+    if not i == response.get('count') - 2:
         key_next = types.InlineKeyboardButton(text='Next', callback_data='next')
         keyboard.add(key_next)
     if not i == 0:
@@ -255,9 +253,9 @@ def callback_worker(call):
         bot.send_message(chat_id, 'You will miss this event 😭', reply_markup=get_markup(chat_id))
         eventIdOfUser=0
     elif call.data=='get_code':
-        eventIdOfUser=0
         response = requestAPI.getUsersEvents(chat_id).json()[eventIdOfUser]
         bot.edit_message_text(text = getEventInfo(response), chat_id=chat_id, message_id=call.message.message_id , reply_markup=None, parse_mode="Markdown")
+        eventIdOfUser=0
         EAN = barcode.get_barcode_class('ean13')
         code = str(random.randint(0, 9)) + str(random.randint(0, 9)) + str(chat_id) + str(random.randint(0, 9)) + str(random.randint(0, 9))
         ean = EAN(code, writer=ImageWriter())
@@ -314,8 +312,11 @@ def callback_worker(call):
         bot.edit_message_text(text='Do you want to register to this event?', chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
                               reply_markup=None)
-        requestAPI.postUserOnEvent(chat_id, eventId)
-        bot.send_message(chat_id, "Congratulations🔥 You have been registered to this event!", reply_markup=get_markup(chat_id))
+        if len(requestAPI.getEventsUsers(eventId).json()) < requestAPI.getEventById(eventId).json().get('ticketsAmount'):
+            requestAPI.postUserOnEvent(chat_id, eventId)
+            bot.send_message(chat_id, "Congratulations🔥 You have been registered to this event!", reply_markup=get_markup(chat_id))
+        else:
+            bot.send_message(chat_id, "Sorry 😔 There are not any tickets left", reply_markup=get_markup(chat_id))
     elif call.data == 'no':
         bot.edit_message_text(text='Do you want to register to this event?', chat_id=call.message.chat.id,
                               message_id=call.message.message_id,

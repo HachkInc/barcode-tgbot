@@ -72,7 +72,7 @@ def getEvent(event_json):
         'name': event_json.get('name'),
         'date': date.strftime('%A %d %B %Y'),
         'time': date.strftime('%H:%M'),
-        'tickets': event_json.get('ticketsAmount')
+        'tickets': event_json.get('ticketsAmount') - len(requestAPI.getEventsUsers(event_json.get('id')).json())
     })
 
 def getEventInfo(event_json):
