@@ -31,6 +31,12 @@ class Request:
                                   headers={'x-api-key': self.secret})
         return response.status_code
 
+    def addBarCode(self, telegramId, barCode):
+        id = self.getUser(telegramId).json().get('user').get('id')
+        response = requests.patch(self.api + '/users/' + str(id), json={'qr': barCode},
+                                  headers={'x-api-key': self.secret})
+        return response.status_code
+
     def getEvents(self):
         response = requests.get(self.api + '/events/', headers={'x-api-key': self.secret})
         return response

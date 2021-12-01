@@ -1,7 +1,16 @@
+import random
+
+from PIL import Image
 from telebot import types
 
 from tools import User, get_user_from_json, get_markup, texts, requestAPI, bot, getData, getEvent, getEventInfo
 
+from pyzbar.pyzbar import decode
+import barcode
+from barcode.writer import ImageWriter
+import os
+
+path = '/Users/arseniyms/PycharmProjects/botTelegram/'
 
 @bot.message_handler(commands=['start'])
 def start_message(msg):
@@ -142,9 +151,6 @@ def get_next_events(keyboard, i):
         keyboard.add(key_prev)
     return keyboard
 
-print(requestAPI.getUsersEvents(404167622).json())
-
-print(requestAPI.getPlaceOfEvent(5).json())
 
 eventIdOfUser=0
 @bot.message_handler(regexp=texts.get('myevents'))
@@ -156,6 +162,8 @@ def get_my_events(chat_id, message_id = 0):
     response = requestAPI.getUsersEvents(chat_id)
     if len(response.json()) != 0:
         keyboard = types.InlineKeyboardMarkup()
+        key_code = types.InlineKeyboardButton(text='Code 🔐', callback_data='get_code')
+        keyboard.add(key_code)
         key_delete = types.InlineKeyboardButton(text='Miss 😢', callback_data='miss event')
         keyboard.add(key_delete)
         key_next = types.InlineKeyboardButton(text='Next', callback_data='nextmy')
@@ -246,6 +254,20 @@ def callback_worker(call):
         bot.edit_message_text(text = getEventInfo(response), chat_id=chat_id, message_id=call.message.message_id , reply_markup=None, parse_mode="Markdown")
         bot.send_message(chat_id, 'You will miss this event 😭', reply_markup=get_markup(chat_id))
         eventIdOfUser=0
+    elif call.data=='get_code':
+        eventIdOfUser=0
+        response = requestAPI.getUsersEvents(chat_id).json()[eventIdOfUser]
+        bot.edit_message_text(text = getEventInfo(response), chat_id=chat_id, message_id=call.message.message_id , reply_markup=None, parse_mode="Markdown")
+        EAN = barcode.get_barcode_class('ean13')
+        code = str(random.randint(0, 9)) + str(random.randint(0, 9)) + str(chat_id) + str(random.randint(0, 9)) + str(random.randint(0, 9))
+        ean = EAN(code, writer=ImageWriter())
+        image_name = 'barcode_'+ str(chat_id)
+        fullname = ean.save(image_name)
+
+        requestAPI.addBarCode(chat_id, code)
+        bot.send_photo(chat_id, Image.open(path + fullname))
+        os.remove(path + fullname)
+
 
 
 
