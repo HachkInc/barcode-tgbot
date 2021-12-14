@@ -3,15 +3,11 @@ import random
 from PIL import Image
 from telebot import types
 
-import barReader
 from tools import User, get_user_from_json, get_markup, texts, requestAPI, bot, getData, getEvent, getEventInfo
-import barcode
-from barcode.writer import ImageWriter
 import os
+import qrcode
 
 path = os.environ.get('path')
-
-barReader.barcode_reader()
 
 @bot.message_handler(commands=['start'])
 def start_message(msg):
@@ -262,15 +258,13 @@ def callback_worker(call):
         strEventId = str(response.get('id'))
         for i in range(3, len(strEventId), -1):
             strEventId = '0' + strEventId
-        EAN = barcode.get_barcode_class('ean13')
         code = strEventId[:2] + str(chat_id) + strEventId[-1:] + str(random.randint(0,9))
-        ean = EAN(code, writer=ImageWriter())
         image_name = 'barcode_' + str(chat_id)
-        fullname = ean.save(image_name)
-
+        qr = qrcode.make(code)
+        qr.save(image_name)
         requestAPI.addBarCode(chat_id, code)
-        bot.send_photo(chat_id, Image.open(path + fullname))
-        os.remove(path + fullname)
+        bot.send_photo(chat_id, Image.open(path + image_name))
+        os.remove(path + image_name)
 
 
 
