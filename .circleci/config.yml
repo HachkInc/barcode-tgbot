@@ -16,7 +16,7 @@ jobs:
     steps:
         - checkout
         - run: pip install telebot
-        - run: python userDataHandler.py
+        - run: py -m pip show telebot
 workflows:
   build_and_test:
     jobs:
