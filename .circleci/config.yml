@@ -15,7 +15,7 @@ jobs:
           - image: "circleci/python:latest"
     steps:
         - checkout
-        - run: pip install PIL
+        - run: pip install telebot
         - run: python userDataHandler.py
 workflows:
   build_and_test:
