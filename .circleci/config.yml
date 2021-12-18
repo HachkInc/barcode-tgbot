@@ -1,18 +1,18 @@
+version: 2.1
+orbs:
+  python: circleci/python@1.5.0
 jobs:
-  publish:
-    executor: python/default
+  build:
+    working_directory: .
+    docker:
+      - image: "circleci/python:latest"
     steps:
       - checkout
-      - python/dist
       - run: pip install telebot
-orbs:
-  python: circleci/python@1.0.0
-version: 2.1
 workflows:
-  main:
+  build_and_test:
     jobs:
-      - python/test:
-          args: '--dev'
-          pkg-manager: pipenv
-          test-tool: pytest
-      - publish
+      - build
+      - test:
+          requires:
+            - build
