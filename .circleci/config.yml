@@ -3,12 +3,20 @@ orbs:
   python: circleci/python@1.5.0
 jobs:
   build:
-    working_directory: .
+    working_directory: ~/circleci-python
     docker:
       - image: "circleci/python:latest"
     steps:
       - checkout
       - run: pip install telebot
+  test:
+    working_directory: ~/circleci-python
+    docker:
+          - image: "circleci/python:latest"
+    steps:
+        - checkout
+        - run: pip install PIL
+        - run: pip install telebot
 workflows:
   build_and_test:
     jobs:
